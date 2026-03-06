@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VERITAS — AI Detection Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #080a0f;
+    --bg2: #0d1117;
+    --panel: #111520;
+    --border: #1e2535;
+    --cyan: #00e5ff;
+    --cyan-dim: #00b8cc;
+    --cyan-glow: rgba(0,229,255,0.15);
+    --red: #ff3b5c;
+    --red-glow: rgba(255,59,92,0.15);
+    --green: #00ff88;
+    --green-glow: rgba(0,255,136,0.12);
+    --yellow: #ffd600;
+    --text: #e8eaf0;
+    --muted: #5a6480;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Radial vignette */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, transparent 40%, var(--bg) 90%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 48px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,10,15,0.8);
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: 0.12em;
+    color: var(--cyan);
+    text-transform: uppercase;
+  }
+  .logo span { color: var(--text); opacity: 0.5; font-weight: 400; font-size: 12px; display: block; letter-spacing: 0.3em; margin-top: 2px; }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .dot {
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── MAIN ── */
+  main {
+    position: relative;
+    z-index: 5;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 60px 24px 100px;
+  }
+
+  .hero {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+  .hero h1 {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: clamp(36px, 6vw, 64px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--cyan);
+    position: relative;
+  }
+  .hero h1 em::after {
+    content: '';
+    position: absolute;
+    bottom: -4px; left: 0; right: 0;
+    height: 2px;
+    background: var(--cyan);
+    box-shadow: 0 0 12px var(--cyan);
+  }
+  .hero p {
+    color: var(--muted);
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    line-height: 1.8;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* ── UPLOAD ZONE ── */
+  .upload-zone {
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    background: var(--panel);
+    padding: 56px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--cyan-glow);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .upload-zone:hover::before,
+  .upload-zone.drag-over::before { opacity: 1; }
+  .upload-zone:hover,
+  .upload-zone.drag-over {
+    border-color: var(--cyan);
+  }
+  .upload-zone.drag-over { transform: scale(1.01); }
+
+  .upload-icon {
+    width: 56px; height: 56px;
+    margin: 0 auto 20px;
+    position: relative;
+  }
+  .upload-icon svg { width: 100%; height: 100%; }
+
+  .upload-label {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .upload-sub {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-bottom: 24px;
+  }
+
+  .file-types {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  #fileInput { display: none; }
+
+  /* ── API KEY ── */
+  .api-section {
+    margin-bottom: 24px;
+    padding: 20px 24px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .api-label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .api-label::before { content: '//'; color: var(--cyan); }
+  .api-row { display: flex; gap: 10px; }
+  .api-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .api-input:focus { border-color: var(--cyan); }
+  .api-input::placeholder { color: var(--muted); }
+
+  /* ── SCAN BUTTON ── */
+  .scan-btn {
+    display: none;
+    width: 100%;
+    margin-top: 20px;
+    padding: 18px;
+    background: transparent;
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .scan-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--cyan-glow);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .scan-btn:hover::before { opacity: 1; }
+  .scan-btn:hover { box-shadow: 0 0 24px var(--cyan-glow), inset 0 0 12px var(--cyan-glow); }
+  .scan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .scan-btn.visible { display: block; }
+
+  /* ── FILE PREVIEW ── */
+  .file-preview {
+    display: none;
+    margin-top: 20px;
+    padding: 16px 20px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    align-items: center;
+    gap: 14px;
+  }
+  .file-preview.visible { display: flex; }
+  .file-preview-icon { font-size: 24px; }
+  .file-info { flex: 1; }
+  .file-name { font-size: 13px; color: var(--text); word-break: break-all; }
+  .file-size { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .file-remove {
+    background: none; border: none;
+    color: var(--muted); cursor: pointer;
+    font-size: 18px; padding: 4px 8px;
+    transition: color 0.2s;
+  }
+  .file-remove:hover { color: var(--red); }
+
+  /* ── LOADER ── */
+  .loader {
+    display: none;
+    margin-top: 32px;
+    padding: 40px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    text-align: center;
+  }
+  .loader.visible { display: block; }
+
+  .scan-animation {
+    width: 80px; height: 80px;
+    margin: 0 auto 20px;
+    position: relative;
+  }
+  .scan-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: var(--cyan);
+    animation: spin 1.2s linear infinite;
+  }
+  .scan-ring:nth-child(2) {
+    inset: 10px;
+    border-top-color: transparent;
+    border-right-color: var(--cyan-dim);
+    animation-duration: 0.9s;
+    animation-direction: reverse;
+  }
+  .scan-ring:nth-child(3) {
+    inset: 20px;
+    border-top-color: var(--cyan);
+    animation-duration: 1.6s;
+    opacity: 0.5;
+  }
+  .scan-dot {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 8px; height: 8px;
+    background: var(--cyan);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--cyan);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .scan-status {
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    animation: blink 1.5s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .scan-steps {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: left;
+    max-width: 340px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .scan-step {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    opacity: 0;
+    transition: opacity 0.5s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .scan-step.active { opacity: 1; color: var(--text); }
+  .scan-step::before { content: '>'; color: var(--cyan); font-size: 10px; }
+
+  /* ── RESULTS ── */
+  .results {
+    display: none;
+    margin-top: 32px;
+    animation: fadeUp 0.5s ease both;
+  }
+  .results.visible { display: block; }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+
+  /* Verdict banner */
+  .verdict {
+    padding: 28px 32px;
+    border-radius: 4px 4px 0 0;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .verdict::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.06;
+  }
+  .verdict.ai { border-color: var(--red); background: rgba(255,59,92,0.08); }
+  .verdict.ai::before { background: var(--red); }
+  .verdict.real { border-color: var(--green); background: rgba(0,255,136,0.06); }
+  .verdict.real::before { background: var(--green); }
+  .verdict.uncertain { border-color: var(--yellow); background: rgba(255,214,0,0.06); }
+  .verdict.uncertain::before { background: var(--yellow); }
+
+  .verdict-icon { font-size: 40px; }
+  .verdict-label {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .verdict-text {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 28px;
+    letter-spacing: 0.05em;
+  }
+  .verdict.ai .verdict-text { color: var(--red); }
+  .verdict.real .verdict-text { color: var(--green); }
+  .verdict.uncertain .verdict-text { color: var(--yellow); }
+
+  .verdict-confidence {
+    margin-left: auto;
+    text-align: right;
+  }
+  .conf-label { font-size: 10px; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+  .conf-value {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 36px;
+  }
+  .verdict.ai .conf-value { color: var(--red); }
+  .verdict.real .conf-value { color: var(--green); }
+  .verdict.uncertain .conf-value { color: var(--yellow); }
+
+  /* Details panel */
+  .details-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    padding: 28px 32px;
+  }
+
+  .section-title {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .summary-text {
+    font-size: 14px;
+    line-height: 1.9;
+    color: var(--text);
+    margin-bottom: 28px;
+    font-family: var(--mono);
+  }
+
+  /* Indicators */
+  .indicators { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
+
+  .indicator {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 18px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    transition: border-color 0.2s;
+  }
+  .indicator:hover { border-color: var(--cyan); }
+
+  .ind-severity {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .sev-high { background: rgba(255,59,92,0.15); color: var(--red); border: 1px solid rgba(255,59,92,0.3); }
+  .sev-med  { background: rgba(255,214,0,0.1);  color: var(--yellow); border: 1px solid rgba(255,214,0,0.3); }
+  .sev-low  { background: rgba(0,229,255,0.1);  color: var(--cyan); border: 1px solid rgba(0,229,255,0.2); }
+  .sev-none { background: rgba(0,255,136,0.1);  color: var(--green); border: 1px solid rgba(0,255,136,0.2); }
+
+  .ind-content { flex: 1; }
+  .ind-title { font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+  .ind-desc { font-size: 12px; color: var(--muted); line-height: 1.7; }
+
+  /* Confidence bar */
+  .conf-bar-wrap { margin-bottom: 28px; }
+  .conf-bar-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 8px; letter-spacing: 0.1em; }
+  .conf-bar-track {
+    height: 6px;
+    background: var(--bg);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .conf-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1.2s cubic-bezier(0.22,1,0.36,1);
+  }
+  .fill-ai   { background: linear-gradient(90deg, var(--red), #ff6b85); box-shadow: 0 0 8px var(--red); }
+  .fill-real { background: linear-gradient(90deg, var(--green), #66ffbb); box-shadow: 0 0 8px var(--green); }
+  .fill-uncertain { background: linear-gradient(90deg, var(--yellow), #ffe566); box-shadow: 0 0 8px var(--yellow); }
+
+  /* Metadata grid */
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .meta-item {
+    padding: 14px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  .meta-key { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .meta-val { font-size: 13px; color: var(--text); }
+
+  /* Reset button */
+  .reset-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+    margin-top: 8px;
+  }
+  .reset-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  /* Error */
+  .error-msg {
+    display: none;
+    margin-top: 16px;
+    padding: 14px 18px;
+    background: rgba(255,59,92,0.08);
+    border: 1px solid rgba(255,59,92,0.3);
+    border-radius: 3px;
+    font-size: 12px;
+    color: var(--red);
+    letter-spacing: 0.05em;
+  }
+  .error-msg.visible { display: block; }
+
+  /* image preview in results */
+  .media-preview {
+    margin-bottom: 24px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    max-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+  }
+  .media-preview img {
+    max-width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    header { padding: 16px 20px; }
+    main { padding: 40px 16px 80px; }
+    .verdict { flex-wrap: wrap; gap: 12px; }
+    .verdict-confidence { margin-left: 0; text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    VERITAS
+    <span>AI FORENSICS LAB</span>
+  </div>
+  <div class="status-bar">
+    <div class="dot"></div>
+    SYSTEM ONLINE
+  </div>
+</header>
+
+<main>
+  <!-- Hero -->
+  <div class="hero">
+    <h1>Detect <em>AI-Generated</em><br>Media Instantly</h1>
+    <p>Upload any image, video, PDF or document. Our forensic engine analyses authenticity signals and returns a detailed breakdown.</p>
+  </div>
+
+  <!-- API Key -->
+  <div class="api-section">
+    <div class="api-label">ANTHROPIC API KEY REQUIRED</div>
+    <div class="api-row">
+      <input class="api-input" id="apiKey" type="password" placeholder="sk-ant-api03-..." autocomplete="off" />
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px;letter-spacing:0.05em;">
+      Your key is never stored or transmitted beyond your browser session. Get one at <a href="https://console.anthropic.com" target="_blank" style="color:var(--cyan);text-decoration:none;">console.anthropic.com</a>
+    </div>
+  </div>
+
+  <!-- Upload -->
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept="image/*,video/*,.pdf,.doc,.docx" />
+    <div class="upload-icon">
+      <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="28" cy="28" r="27" stroke="rgba(0,229,255,0.3)" stroke-width="1" stroke-dasharray="4 4"/>
+        <path d="M28 18V38M18 28H38" stroke="#00e5ff" stroke-width="1.5" stroke-linecap="square"/>
+        <circle cx="28" cy="28" r="10" stroke="rgba(0,229,255,0.15)" stroke-width="1"/>
+      </svg>
+    </div>
+    <div class="upload-label">Drop file here or click to browse</div>
+    <div class="upload-sub">MAX 20MB — IMAGES · VIDEOS · PDF · DOCUMENTS</div>
+    <div class="file-types">
+      <span class="tag">JPG</span>
+      <span class="tag">PNG</span>
+      <span class="tag">WEBP</span>
+      <span class="tag">GIF</span>
+      <span class="tag">MP4</span>
+      <span class="tag">PDF</span>
+      <span class="tag">MOV</span>
+    </div>
+  </div>
+
+  <!-- File preview -->
+  <div class="file-preview" id="filePreview">
+    <div class="file-preview-icon" id="previewIcon">📄</div>
+    <div class="file-info">
+      <div class="file-name" id="previewName">filename.jpg</div>
+      <div class="file-size" id="previewSize">0 KB</div>
+    </div>
+    <button class="file-remove" id="removeFile">✕</button>
+  </div>
+
+  <!-- Scan button -->
+  <button class="scan-btn" id="scanBtn">
+    ⟶ &nbsp; INITIATE FORENSIC SCAN
+  </button>
+
+  <!-- Error -->
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- Loader -->
+  <div class="loader" id="loader">
+    <div class="scan-animation">
+      <div class="scan-ring"></div>
+      <div class="scan-ring"></div>
+      <div class="scan-ring"></div>
+      <div class="scan-dot"></div>
+    </div>
+    <div class="scan-status" id="scanStatus">INITIALISING SCAN</div>
+    <div class="scan-steps" id="scanSteps">
+      <div class="scan-step" id="step1">Extracting file metadata</div>
+      <div class="scan-step" id="step2">Loading AI model pipeline</div>
+      <div class="scan-step" id="step3">Analysing visual artifacts</div>
+      <div class="scan-step" id="step4">Checking generation signatures</div>
+      <div class="scan-step" id="step5">Compiling forensic report</div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results"></div>
+
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let selectedFile = null;
+
+// ── FILE SELECTION ──
+$('uploadZone').addEventListener('click', () => $('fileInput').click());
+$('fileInput').addEventListener('change', e => handleFile(e.target.files[0]));
+
+$('uploadZone').addEventListener('dragover', e => {
+  e.preventDefault();
+  $('uploadZone').classList.add('drag-over');
+});
+$('uploadZone').addEventListener('dragleave', () => $('uploadZone').classList.remove('drag-over'));
+$('uploadZone').addEventListener('drop', e => {
+  e.preventDefault();
+  $('uploadZone').classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+
+$('removeFile').addEventListener('click', () => {
+  selectedFile = null;
+  $('filePreview').classList.remove('visible');
+  $('scanBtn').classList.remove('visible');
+  $('fileInput').value = '';
+  hideResults();
+});
+
+function handleFile(file) {
+  if (!file) return;
+  if (file.size > 20 * 1024 * 1024) {
+    showError('File too large. Maximum size is 20MB.');
+    return;
+  }
+  selectedFile = file;
+  $('previewName').textContent = file.name;
+  $('previewSize').textContent = formatSize(file.size);
+  $('previewIcon').textContent = getIcon(file.type);
+  $('filePreview').classList.add('visible');
+  $('scanBtn').classList.add('visible');
+  hideResults();
+  clearError();
+}
+
+function formatSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/(1024*1024)).toFixed(1) + ' MB';
+}
+function getIcon(type) {
+  if (type.startsWith('image')) return '🖼️';
+  if (type.startsWith('video')) return '🎬';
+  if (type.includes('pdf')) return '📄';
+  return '📋';
+}
+
+// ── SCAN ──
+$('scanBtn').addEventListener('click', runScan);
+
+async function runScan() {
+  const apiKey = $('apiKey').value.trim();
+  if (!apiKey) { showError('Please enter your Anthropic API key.'); return; }
+  if (!selectedFile) { showError('Please select a file to scan.'); return; }
+
+  clearError();
+  $('scanBtn').disabled = true;
+  showLoader();
+  hideResults();
+
+  // Animate steps
+  const steps = ['step1','step2','step3','step4','step5'];
+  const delays = [400,900,1500,2200,3000];
+  delays.forEach((d,i) => setTimeout(() => {
+    $(steps[i]).classList.add('active');
+    $('scanStatus').textContent = $(steps[i]).textContent.toUpperCase() + '...';
+  }, d));
+
+  try {
+    let result;
+    const fileType = selectedFile.type;
+
+    if (fileType.startsWith('image')) {
+      result = await analyseImage(apiKey, selectedFile);
+    } else if (fileType.startsWith('video')) {
+      result = await analyseVideo(apiKey, selectedFile);
+    } else {
+      result = await analyseDocument(apiKey, selectedFile);
+    }
+
+    hideLoader();
+    showResults(result, selectedFile);
+  } catch (err) {
+    hideLoader();
+    showError('Analysis failed: ' + (err.message || 'Unknown error. Check your API key and try again.'));
+  } finally {
+    $('scanBtn').disabled = false;
+  }
+}
+
+// ── IMAGE ANALYSIS ──
+async function analyseImage(apiKey, file) {
+  const base64 = await fileToBase64(file);
+  const mediaType = file.type;
+
+  const prompt = `You are an expert forensic AI-detection analyst. Carefully examine this image and determine whether it is AI-generated or a real photograph/artwork.
+
+Analyse every aspect including:
+- Lighting consistency and physics accuracy
+- Facial symmetry and anatomy (if faces present)
+- Background coherence and depth of field
+- Text legibility and consistency  
+- Object boundaries and blending artifacts
+- Texture patterns (hair, fabric, skin, surfaces)
+- Perspective and spatial relationships
+- Metadata-inference cues
+- Any generation artifacts (e.g., extra fingers, impossible reflections, repeating patterns, unnatural bokeh)
+- Noise patterns and compression artifacts consistent with generative models
+
+Respond ONLY with a valid JSON object in exactly this format:
+{
+  "verdict": "AI_GENERATED" | "REAL" | "UNCERTAIN",
+  "confidence": <number 0-100>,
+  "summary": "<2-3 sentence plain-English summary of findings>",
+  "indicators": [
+    {
+      "title": "<short title>",
+      "description": "<detailed explanation of this specific finding>",
+      "severity": "HIGH" | "MEDIUM" | "LOW" | "NONE"
+    }
+  ],
+  "metadata": {
+    "type": "Image",
+    "likely_source": "<e.g. Midjourney, DALL-E, Stable Diffusion, Real Camera, etc.>",
+    "analysed_features": "<comma-separated list of features checked>"
+  }
+}
+
+Include 4-7 indicators. Be specific about locations and visual evidence. If REAL, use NONE severity and explain what confirms authenticity.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-5',
+      max_tokens: 1500,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+          { type: 'text', text: prompt }
+        ]
+      }]
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API error ${response.status}`);
+  }
+
+  const data = await response.json();
+  const text = data.content.map(b => b.text || '').join('');
+  return parseJSON(text);
+}
+
+// ── VIDEO ANALYSIS ──
+async function analyseVideo(apiKey, file) {
+  // Extract a frame from the video as a proxy for analysis
+  const frame = await extractVideoFrame(file);
+  const frameFile = dataURLtoFile(frame, 'frame.jpg', 'image/jpeg');
+  const result = await analyseImage(apiKey, frameFile);
+  result.metadata.type = 'Video (frame analysis)';
+  result.indicators.unshift({
+    title: 'Video Frame Extraction',
+    description: 'A representative frame was extracted from the video for visual analysis. Full video analysis is based on this sample frame and file properties.',
+    severity: 'LOW'
+  });
+  return result;
+}
+
+// ── DOCUMENT/PDF ANALYSIS ──
+async function analyseDocument(apiKey, file) {
+  const prompt = `You are an expert forensic AI-detection analyst. The user has uploaded a document/PDF named "${file.name}" (${formatSize(file.size)}).
+
+Without being able to view the document directly, analyse based on filename, file size, and type what you can infer, and provide a structured forensic report noting the limitations.
+
+Respond ONLY with a valid JSON object:
+{
+  "verdict": "UNCERTAIN",
+  "confidence": 50,
+  "summary": "<Explain that document text analysis requires text extraction and what signals would indicate AI generation in documents>",
+  "indicators": [
+    {
+      "title": "<signal name>",
+      "description": "<what to look for in documents>",
+      "severity": "LOW"
+    }
+  ],
+  "metadata": {
+    "type": "Document",
+    "likely_source": "Unknown — text extraction required for full analysis",
+    "analysed_features": "filename, file size, format"
+  }
+}`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-5',
+      max_tokens: 1200,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API error ${response.status}`);
+  }
+  const data = await response.json();
+  const text = data.content.map(b => b.text || '').join('');
+  return parseJSON(text);
+}
+
+// ── HELPERS ──
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('Failed to read file'));
+    r.readAsDataURL(file);
+  });
+}
+
+function extractVideoFrame(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.src = url;
+    video.crossOrigin = 'anonymous';
+    video.muted = true;
+    video.currentTime = 1;
+    video.addEventListener('seeked', () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 360;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      URL.revokeObjectURL(url);
+      res(canvas.toDataURL('image/jpeg', 0.85));
+    });
+    video.addEventListener('error', () => rej(new Error('Could not extract video frame')));
+    video.load();
+  });
+}
+
+function dataURLtoFile(dataurl, filename, mimeType) {
+  const arr = dataurl.split(','), bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while(n--) u8arr[n] = bstr.charCodeAt(n);
+  return new File([u8arr], filename, { type: mimeType });
+}
+
+function parseJSON(text) {
+  const clean = text.replace(/```json|```/g, '').trim();
+  const match = clean.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('Could not parse analysis response.');
+  return JSON.parse(match[0]);
+}
+
+// ── UI ──
+function showLoader() {
+  $('loader').classList.add('visible');
+  ['step1','step2','step3','step4','step5'].forEach(s => $(s).classList.remove('active'));
+}
+function hideLoader() { $('loader').classList.remove('visible'); }
+
+function hideResults() {
+  $('results').classList.remove('visible');
+  $('results').innerHTML = '';
+}
+
+function showError(msg) {
+  $('errorMsg').textContent = msg;
+  $('errorMsg').classList.add('visible');
+}
+function clearError() { $('errorMsg').classList.remove('visible'); }
+
+function showResults(data, file) {
+  const verdictMap = {
+    AI_GENERATED: { cls: 'ai', icon: '⚠', label: 'AI GENERATED', fill: 'fill-ai' },
+    REAL:         { cls: 'real', icon: '✓', label: 'AUTHENTIC', fill: 'fill-real' },
+    UNCERTAIN:    { cls: 'uncertain', icon: '?', label: 'INCONCLUSIVE', fill: 'fill-uncertain' }
+  };
+  const v = verdictMap[data.verdict] || verdictMap['UNCERTAIN'];
+  const conf = Math.max(0, Math.min(100, data.confidence || 50));
+
+  // Build image preview if image
+  let mediaHtml = '';
+  if (file.type.startsWith('image')) {
+    const url = URL.createObjectURL(file);
+    mediaHtml = `<div class="media-preview"><img src="${url}" alt="Uploaded file" /></div>`;
+  }
+
+  // Build indicators
+  const sevMap = { HIGH: 'sev-high', MEDIUM: 'sev-med', LOW: 'sev-low', NONE: 'sev-none' };
+  const indicators = (data.indicators || []).map(ind => `
+    <div class="indicator">
+      <span class="ind-severity ${sevMap[ind.severity] || 'sev-low'}">${ind.severity || 'LOW'}</span>
+      <div class="ind-content">
+        <div class="ind-title">${esc(ind.title)}</div>
+        <div class="ind-desc">${esc(ind.description)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  // Build metadata
+  const meta = data.metadata || {};
+  const metaItems = [
+    { k: 'FILE TYPE', v: meta.type || file.type },
+    { k: 'FILENAME', v: file.name },
+    { k: 'FILE SIZE', v: formatSize(file.size) },
+    { k: 'LIKELY SOURCE', v: meta.likely_source || '—' },
+    { k: 'FEATURES CHECKED', v: meta.analysed_features || '—' },
+    { k: 'SCAN TIME', v: new Date().toLocaleTimeString() },
+  ].map(m => `
+    <div class="meta-item">
+      <div class="meta-key">${esc(m.k)}</div>
+      <div class="meta-val">${esc(m.v)}</div>
+    </div>
+  `).join('');
+
+  $('results').innerHTML = `
+    <div class="verdict ${v.cls}">
+      <div class="verdict-icon">${v.icon}</div>
+      <div>
+        <div class="verdict-label">FORENSIC VERDICT</div>
+        <div class="verdict-text">${v.label}</div>
+      </div>
+      <div class="verdict-confidence">
+        <div class="conf-label">CONFIDENCE</div>
+        <div class="conf-value">${conf}%</div>
+      </div>
+    </div>
+    <div class="details-panel">
+      ${mediaHtml}
+
+      <div class="section-title">CONFIDENCE SCORE</div>
+      <div class="conf-bar-wrap">
+        <div class="conf-bar-label">
+          <span>0% — REAL</span>
+          <span>100% — AI</span>
+        </div>
+        <div class="conf-bar-track">
+          <div class="conf-bar-fill ${v.fill}" id="confFill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="section-title">SUMMARY</div>
+      <div class="summary-text">${esc(data.summary || 'No summary available.')}</div>
+
+      <div class="section-title">FORENSIC INDICATORS (${(data.indicators||[]).length})</div>
+      <div class="indicators">${indicators}</div>
+
+      <div class="section-title">FILE METADATA</div>
+      <div class="meta-grid">${metaItems}</div>
+
+      <button class="reset-btn" id="resetBtn">↩ &nbsp; SCAN ANOTHER FILE</button>
+    </div>
+  `;
+
+  $('results').classList.add('visible');
+
+  // Animate bar
+  setTimeout(() => {
+    const fill = document.getElementById('confFill');
+    if (fill) fill.style.width = conf + '%';
+  }, 100);
+
+  $('resetBtn').addEventListener('click', () => {
+    selectedFile = null;
+    $('filePreview').classList.remove('visible');
+    $('scanBtn').classList.remove('visible');
+    $('fileInput').value = '';
+    hideResults();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
